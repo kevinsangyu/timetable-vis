@@ -2,6 +2,8 @@ import pandas as pd
 from calendar import day_name
 import matplotlib.pyplot as plt
 from os import mkdir
+import tkinter as tk
+from tkinter.filedialog import askopenfilename
 
 
 # Time Table Visualizer
@@ -9,11 +11,21 @@ from os import mkdir
 
 
 class TimeTableVis(object):
-    def __init__(self, excel_path):
-        self.excel_path = excel_path
+    def __init__(self):
+        app = tk.Tk()
+        app.title = "TimeTableVisualiser"
+        app.withdraw()
+        filetypes = (('Excel Spreadsheet', '*.xlsx'), ('All files', '*.*'))
+        f = askopenfilename(filetypes=filetypes, initialdir=".\\", title="Locate timetable spreadsheet")
+        app.destroy()
+        if not f:
+            return
+        print(f"File location received: {f}")
+        self.excel_path = f
         self.timetable = {}
 
         self.comprehend_excel_file()
+        self.generate_images()
 
     def comprehend_excel_file(self):
         try:
@@ -156,5 +168,4 @@ class TimeTableVis(object):
 
 
 if __name__ == '__main__':
-    ttv = TimeTableVis(excel_path="KOI_Class_Report_8496.xlsx")
-    ttv.generate_images()
+    ttv = TimeTableVis()
