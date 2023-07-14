@@ -6,6 +6,7 @@ Install required modules:
 2. matplotlib
 3. openpyxl
 4. tkinter
+To ensure these modules are installed, run the _setup.py_ file.
 
 This python tool renders timetable images from a single .xlsx file. The Excel spreadsheet file must be in the following 
 format:
@@ -28,7 +29,7 @@ format:
 The resulting images will be outputted into separated folders, under the output folder.
 
 INSTRUCTIONS
-1. Run the python file ttv.py
+1. Run the python file _ttv.py_
 2. This will bring up a console and an open file dialogue window. Navigate to and select your timetable spreadsheet.
 3. The program will begin creating the timetable images, storing them in their respective folders in the same directory as the ttv.py file.
 4. After it is complete, the console will close on its own, unless there is an error.
