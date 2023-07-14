@@ -1,7 +1,7 @@
 import pandas as pd
 from calendar import day_name
 import matplotlib.pyplot as plt
-from math import modf
+from os import mkdir
 # import openpyxl
 
 
@@ -91,18 +91,22 @@ class TimeTableVis(object):
                         text = f"{cls['Curriculum Item']}  ({starttime} ~ {endtime})\n"
                         text += f"{cls['Full Title']}\n"
                         text += f"{cls['Activity Name']} - Class {cls['Class']}\n"
-                        text += f"{cls['Staff Given Name']} {cls['Staff Family Name'].upper()}"
+                        text += f"{cls['Staff Given Name']} {cls['Staff Family Name']}"
 
                         barheight = bar.patches[0].get_height()
                         barwidth = bar.patches[0].get_width()
                         barx, bary = bar.patches[0].xy
                         t = plt.text(barx + 0.05, bary+barheight/2, text, ha='left', va='center', fontsize=7, wrap=True)
-                        t.set(bbox=dict(boxstyle='round'))
+                        t.set(bbox=dict(boxstyle='round', color='#d9d9d9'))
 
                 plt.title(campus + " - " + dayofweek, y=1.07)
-                plt.savefig('{0}.png'.format(dayofweek), dpi=200)
+                try:
+                    mkdir(f'output/{campus}')
+                except FileExistsError as e:
+                    pass
+                plt.savefig(f'output/{campus}/{dayofweek}.png', dpi=200)
                 fig.clf()
-            return
+                plt.close(fig)
 
 
 if __name__ == '__main__':
