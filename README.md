@@ -1,5 +1,5 @@
 # TimeTable Visualiser (ttv)
-##### Kevin Yu version 1
+##### Kevin Yu version 2
 
 ### Install required modules:
 
@@ -31,6 +31,8 @@ format:
    8. Room Id
    9. Staff Family Name
    10. Staff Given Name
+   11. Year
+   12. Study Period - Code
 5. The third last character of the Room Id **must** denote the level of the room, eg OC203 --> Level 2
 
 The resulting images will be outputted into separated folders, under the output folder.
@@ -39,6 +41,4 @@ The resulting images will be outputted into separated folders, under the output 
 1. Download the files _setup.py_ and _ttv.py_. You only need these 2 files.
 2. Run the python file _setup.py_ to ensure all required modules are installed.
 3. Run the python file _ttv.py_.
-4. This will bring up a console and an open file dialogue window. Navigate to and select your timetable spreadsheet.
-5. The program will begin creating the timetable images, storing them in their respective folders in the same directory as the Excel Spreadsheet file. Note that if there exists a folder with the name 'output', it will be overwritten.
-6. After it is complete, the console will close on its own, unless there is an error.
+4. Follow the prompts to generate your timetable.
