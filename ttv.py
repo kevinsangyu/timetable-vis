@@ -247,7 +247,7 @@ class TimeTableVis(object):
                     mkdir(f'{save_path}/output/{campus}')
                 except FileExistsError as e:
                     pass
-                plt.savefig(f'output/{campus}/{dayofweek}.png', dpi=200)
+                plt.savefig(f'{save_path}/output/{campus}/{dayofweek}.png', dpi=200)
                 fig.clf()
                 plt.close(fig)
             self.tkobj.progbar['value'] += 100/(len(self.timetable.keys())-1)
