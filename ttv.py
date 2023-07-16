@@ -1,6 +1,7 @@
 import pandas as pd
 from calendar import day_name
 import matplotlib.pyplot as plt
+from matplotlib import image
 from os import mkdir
 import tkinter as tk
 from tkinter.filedialog import askopenfilename
@@ -23,6 +24,7 @@ class TimeTableVis(object):
         print(f"File location received: {f}")
         self.excel_path = f
         self.timetable = {}
+        self.timeframe = ""  # year and term number
         save_path = f.split("/")
         save_path = "/".join(save_path[0:-1])
 
@@ -39,6 +41,7 @@ class TimeTableVis(object):
             input()
             return
         print("Comprehending excel sheet file")
+        self.timeframe = f"{file['Year'][0]} - {file['Study Period - Code'][0]}"
         for row in file.iloc():
             date = row["Start Date"]
             dayoftheweek = day_name[date.weekday()]
@@ -83,17 +86,18 @@ class TimeTableVis(object):
             if len(levels) > 1:
                 print(f"Multiple levels found on campus {campus}")
                 for level in levels:
-                    print(f"Adding classes for f'{campus}L{level}'")
-                    self.timetable[f'{campus}L{level}'] = {'Monday': {}, 'Tuesday': {}, 'Wednesday': {},
-                                                           'Thursday': {}, 'Friday': {}, 'Saturday': {},
-                                                           'Sunday': {}}
+                    print(f"Adding classes for {campus} Level {level}")
+                    self.timetable[f'{campus} Level {level}'] = {'Monday': {}, 'Tuesday': {}, 'Wednesday': {},
+                                                                 'Thursday': {}, 'Friday': {}, 'Saturday': {},
+                                                                 'Sunday': {}}
                     for room in rooms:
                         if str(room)[-3] == level:
-                            for dayofweek in self.timetable[f'{campus}L{level}']:
-                                self.timetable[f'{campus}L{level}'][dayofweek][room] = [cls for cls in
-                                                                                        self.timetable[campus][
-                                                                                            dayofweek][room] if
-                                                                                        cls['Room Id'][-3] == level]
+                            for dayofweek in self.timetable[f'{campus} Level {level}']:
+                                self.timetable[f'{campus} Level {level}'][dayofweek][room] = [cls for cls in
+                                                                                              self.timetable[campus][
+                                                                                                  dayofweek][room] if
+                                                                                              cls['Room Id'][
+                                                                                                  -3] == level]
 
                 del self.timetable[campus]
 
@@ -115,6 +119,9 @@ class TimeTableVis(object):
         Actually does the generation of timetable images
         """
         for campus in self.timetable:
+            if campus[0:3] == 'ONL':
+                # don't draw online timetable
+                continue
             for dayofweek in self.timetable[campus]:
                 print(f"Plotting campus {campus} for {dayofweek}")
                 fig, ax = plt.subplots(figsize=(12, 7))
@@ -130,10 +137,19 @@ class TimeTableVis(object):
                 ax.set_yticks(range(1, len(rooms) + 1))
                 ax.set_yticklabels(rooms)
                 ax.set_xticks(range(9, 23))
+                ax.set_xticklabels(["09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00",
+                                    "18:00", "19:00", "20:00", "21:00", "22:00"])
                 ax.set_xlabel('Time')
+
+                # Adding logo - logo name must be logo.png in the same directory
+                logo = image.imread("logo.png")
+                fig.figimage(logo, 10, 10)
 
                 # Plotting Classes
                 for roomindex in range(len(rooms)):
+                    if roomindex != 0:
+                        # line in between boxes/ygrid
+                        ax.axline((1, roomindex + 0.5), (2, roomindex + 0.5), color='grey', linewidth=0.5)
                     for cls in self.timetable[campus][dayofweek][rooms[roomindex]]:
                         start = float(cls["Start Time"]) / 10000
                         end = float(cls["End Time"]) / 10000
@@ -153,11 +169,11 @@ class TimeTableVis(object):
                         barx, bary = bar.patches[0].xy
                         t = plt.text(barx + 0.05, bary + barheight / 2, text, ha='left', va='center', fontsize=7,
                                      wrap=True)
-                        wrapsize = (end - start) * 400
+                        wrapsize = (end - start) * 140
                         t._get_wrap_line_width = lambda: wrapsize  # change this counter to adjust wrapping size
 
                 # Name and save
-                plt.title(campus + " - " + dayofweek, y=1.07)
+                plt.title(f"{campus} - {dayofweek}\n{self.timeframe}", y=1.07)
                 try:
                     mkdir(f"{save_path}/output")
                 except FileExistsError as e:
@@ -166,7 +182,7 @@ class TimeTableVis(object):
                     mkdir(f'{save_path}/output/{campus}')
                 except FileExistsError as e:
                     pass
-                plt.savefig(f'output/{campus}/{dayofweek}.png', dpi=600)
+                plt.savefig(f'output/{campus}/{dayofweek}.png', dpi=200)
                 fig.clf()
                 plt.close(fig)
 
