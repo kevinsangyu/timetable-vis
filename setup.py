@@ -11,5 +11,6 @@ if __name__ == '__main__':
     install("pandas")
     install("openpyxl")
     install("matplotlib")
+    install("numpy")
     print("\n\n\n")
     input("---Setup complete: press enter to exit---")
