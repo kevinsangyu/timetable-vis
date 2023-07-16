@@ -9,7 +9,7 @@
 3. openpyxl
 4. tkinter
 
-To ensure these modules are installed, run the _setup.py_ file.
+To ensure these modules are installed, run the _setup.pyw_ file.
 
 
 ### DESCRIPTION AND CONSTRAINTS
@@ -38,7 +38,9 @@ format:
 The resulting images will be outputted into separated folders, under the output folder.
 
 ### INSTRUCTIONS
-1. Download the files _setup.py_ and _ttv.py_. You only need these 2 files.
-2. Run the python file _setup.py_ to ensure all required modules are installed.
-3. Run the python file _ttv.py_.
+1. Download the files _setup.pyw_ and _ttv.pyw_. You only need these 2 files.
+2. Run the python file _setup.pyw_ to ensure all required modules are installed.
+3. Run the python file _ttv.pyw_.
 4. Follow the prompts to generate your timetable.
+
+Note that if you want to run this code on Linux or MacOS, it should be functional if you change the file extension from .pyw to .py.
