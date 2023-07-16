@@ -1,11 +1,12 @@
-import pandas as pd
-from calendar import day_name
-import matplotlib.pyplot as plt
-from matplotlib import image
-from os import mkdir
 import tkinter as tk
+from calendar import day_name
+from os import mkdir
 from tkinter import ttk, messagebox, Toplevel
 from tkinter.filedialog import askopenfilename
+
+import matplotlib.pyplot as plt
+import pandas as pd
+from matplotlib import image
 
 
 # Time Table Visualizer
@@ -159,7 +160,7 @@ class TimeTableVis(object):
                                                                                                   -3] == level]
 
                 del self.timetable[campus]
-            self.tkobj.progbar['value'] += 100/(len(copytable.keys())-1)
+            self.tkobj.progbar['value'] += 100 / (len(copytable.keys()) - 1)
             self.tkobj.root.update()
 
     def text_display_timetable(self):
@@ -250,7 +251,7 @@ class TimeTableVis(object):
                 plt.savefig(f'{save_path}/output/{campus}/{dayofweek}.png', dpi=200)
                 fig.clf()
                 plt.close(fig)
-            self.tkobj.progbar['value'] += 100/(len(self.timetable.keys())-1)
+            self.tkobj.progbar['value'] += 100 / (len(self.timetable.keys()) - 1)
             self.tkobj.root.update()
 
 
