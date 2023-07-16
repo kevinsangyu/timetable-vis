@@ -23,15 +23,19 @@ class TimeTableVis(object):
         print(f"File location received: {f}")
         self.excel_path = f
         self.timetable = {}
+        save_path = f.split("/")
+        save_path = "/".join(save_path[0:-1])
 
         self.comprehend_excel_file()
-        self.generate_images()
+        self.generate_images(save_path)
 
     def comprehend_excel_file(self):
         try:
             file = pd.read_excel(self.excel_path)
         except ValueError as e:
-            print("ERROR: Remove any active filters on the excel sheet and retry. \nPress enter to exit.")
+            print("ERROR: Excel spreadsheet file comprehension failed. Try removing any active filters in the file, and"
+                  " make sure the data starts at cell A1, so the first row is the column headings and the second"
+                  " row is the first event/class/entry.")
             input()
             return
         print("Comprehending excel sheet file")
@@ -106,7 +110,7 @@ class TimeTableVis(object):
                     for cls in self.timetable[campus][dayofweek][room]:
                         print("------", cls["Start Time"])
 
-    def generate_images(self):
+    def generate_images(self, save_path):
         """
         Actually does the generation of timetable images
         """
@@ -155,11 +159,11 @@ class TimeTableVis(object):
                 # Name and save
                 plt.title(campus + " - " + dayofweek, y=1.07)
                 try:
-                    mkdir("output")
+                    mkdir(f"{save_path}/output")
                 except FileExistsError as e:
                     pass
                 try:
-                    mkdir(f'output/{campus}')
+                    mkdir(f'{save_path}/output/{campus}')
                 except FileExistsError as e:
                     pass
                 plt.savefig(f'output/{campus}/{dayofweek}.png', dpi=600)
