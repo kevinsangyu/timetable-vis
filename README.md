@@ -40,5 +40,5 @@ The resulting images will be outputted into separated folders, under the output 
 2. Run the python file _setup.py_ to ensure all required modules are installed.
 3. Run the python file _ttv.py_.
 4. This will bring up a console and an open file dialogue window. Navigate to and select your timetable spreadsheet.
-5. The program will begin creating the timetable images, storing them in their respective folders in the same directory as the ttv.py file.
+5. The program will begin creating the timetable images, storing them in their respective folders in the same directory as the Excel Spreadsheet file. Note that if there exists a folder with the name 'output', it will be overwritten.
 6. After it is complete, the console will close on its own, unless there is an error.
