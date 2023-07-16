@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from matplotlib import image
 from os import mkdir
 import tkinter as tk
+from tkinter import ttk, messagebox, Toplevel
 from tkinter.filedialog import askopenfilename
 
 
@@ -11,36 +12,90 @@ from tkinter.filedialog import askopenfilename
 # Kevin Yu
 
 
-class TimeTableVis(object):
+class Application(object):
     def __init__(self):
-        app = tk.Tk()
-        app.title = "TimeTableVisualiser"
-        app.withdraw()
+        self.root = tk.Tk()
+        self.root.title("TTV")
+        self.root.resizable(False, False)
+
+        self.filepath_label = ttk.Label(self.root, text="Open Spreadsheet file", width=25, anchor='w')
+        self.imagepath_label = ttk.Label(self.root, text="Open logo image", width=25, anchor='w')
+        self.filepath_button = ttk.Button(self.root, text="Open file", command=self.open_spreadsheet, width=11)
+        self.imagepath_button = ttk.Button(self.root, text="Open Image", command=self.open_image, width=11)
+        self.generate_button = ttk.Button(self.root, text="Generate!", command=self.generate, width=11)
+        self.exit_button = ttk.Button(self.root, text="Exit", command=self.root.destroy)
+
+        self.filepath_label.grid(row=0, column=0, sticky='W')
+        self.filepath_button.grid(row=0, column=1, sticky='W')
+        self.imagepath_label.grid(row=1, column=0, sticky='W')
+        self.imagepath_button.grid(row=1, column=1, sticky='W')
+        self.generate_button.grid(row=2, column=1)
+        self.exit_button.grid(row=2, column=0, sticky='W')
+
+        self.root.mainloop()
+
+    def open_spreadsheet(self):
         filetypes = (('Excel Spreadsheet', '*.xlsx'), ('All files', '*.*'))
-        f = askopenfilename(filetypes=filetypes, initialdir=".\\", title="Locate timetable spreadsheet")
-        app.destroy()
-        if not f:
-            return
-        print(f"File location received: {f}")
-        self.excel_path = f
+        file_path = askopenfilename(filetypes=filetypes, initialdir=".\\", title="Locate timetable spreadsheet")
+        if file_path:
+            self.filepath_label.config(text=file_path)
+
+    def open_image(self):
+        filetypes = (('PNG Image', '*.png'), ('All files', '*.*'))
+        image_path = askopenfilename(filetypes=filetypes, initialdir=".\\", title="Locate logo image")
+        if image_path:
+            self.imagepath_label.config(text=image_path)
+
+    def generate(self):
+        excel_path = self.filepath_label.cget('text')
+        image_path = self.imagepath_label.cget('text')
+        client = TimeTableVis(self, excel_path, image_path)
+
+    def error(self):
+        messagebox.showerror('Error', "Error: Failed Excel spreadsheet comprehension!\n"
+                                      "Try removing any active filters in the file, and make sure the data starts at "
+                                      "cell A1, so the first row is the column headings and the second row is the "
+                                      "first event/class/entry.")
+        self.child.destroy()
+
+    def prog_window(self):
+        self.child = Toplevel(self.root)
+        self.child.geometry("300x120")
+        self.child.resizable(False, False)
+        self.child.title("TTV - Generating Images...")
+        self.progbar = ttk.Progressbar(self.child, orient='horizontal', mode='determinate', length=200)
+        self.prog_label = ttk.Label(self.child, text="Initialising...", width=45, anchor='w')
+        self.detail_label = ttk.Label(self.child, text="Initialising...", width=45, anchor='w')
+        self.progbar.grid(row=0, column=0, columnspan=2, padx=10, pady=20)
+        self.prog_label.grid(row=1, column=0, columnspan=2, padx=10)
+        self.detail_label.grid(row=2, column=0, columnspan=2, padx=10)
+        self.root.update()
+
+
+class TimeTableVis(object):
+    def __init__(self, tkobj, excel_path, image_path):
+        self.excel_path = excel_path
         self.timetable = {}
         self.timeframe = ""  # year and term number
-        save_path = f.split("/")
+        self.tkobj = tkobj
+        save_path = excel_path.split("/")
         save_path = "/".join(save_path[0:-1])
 
+        tkobj.prog_window()
         self.comprehend_excel_file()
-        self.generate_images(save_path)
+        self.generate_images(save_path, image_path)
+        messagebox.showinfo('Complete', 'Timetable generation has been completed.\nIt is located in the same directory'
+                                        ' as the spreadsheet file, under the folder "output".')
+        self.tkobj.root.destroy()
 
     def comprehend_excel_file(self):
         try:
             file = pd.read_excel(self.excel_path)
         except ValueError as e:
-            print("ERROR: Excel spreadsheet file comprehension failed. Try removing any active filters in the file, and"
-                  " make sure the data starts at cell A1, so the first row is the column headings and the second"
-                  " row is the first event/class/entry.")
-            input()
+            self.tkobj.error()
             return
-        print("Comprehending excel sheet file")
+        self.tkobj.progbar['value'] = 0
+        self.tkobj.prog_label.config(text="Comprehending excel sheet file...")
         self.timeframe = f"{file['Year'][0]} - {file['Study Period - Code'][0]}"
         for row in file.iloc():
             date = row["Start Date"]
@@ -54,6 +109,8 @@ class TimeTableVis(object):
                 self.timetable[row["Building Id"]][dayoftheweek][row["Room Id"]] = [row]
             else:
                 self.timetable[row["Building Id"]][dayoftheweek][row["Room Id"]].append(row)
+            self.tkobj.progbar['value'] += 100 / (len(file.index) - 1)
+            self.tkobj.root.update()
         self.standardize_rooms_and_levels()
 
     def standardize_rooms_and_levels(self):
@@ -69,6 +126,8 @@ class TimeTableVis(object):
         the online timetable into different folders.
         """
         copytable = self.timetable.copy()
+        self.tkobj.prog_label.config(text="Standardizing rooms and levels...")
+        self.tkobj.progbar['value'] = 0
         for campus in copytable:
             rooms = []
             for dayofweek in self.timetable[campus]:
@@ -84,9 +143,9 @@ class TimeTableVis(object):
             for room in rooms:
                 levels.add(str(room)[-3])
             if len(levels) > 1:
-                print(f"Multiple levels found on campus {campus}")
+                self.tkobj.detail_label.config(text=f"Multiple levels found on campus {campus}")
                 for level in levels:
-                    print(f"Adding classes for {campus} Level {level}")
+                    self.tkobj.detail_label.config(text=f"Adding classes for {campus} Level {level}")
                     self.timetable[f'{campus} Level {level}'] = {'Monday': {}, 'Tuesday': {}, 'Wednesday': {},
                                                                  'Thursday': {}, 'Friday': {}, 'Saturday': {},
                                                                  'Sunday': {}}
@@ -100,6 +159,8 @@ class TimeTableVis(object):
                                                                                                   -3] == level]
 
                 del self.timetable[campus]
+            self.tkobj.progbar['value'] += 100/(len(copytable.keys())-1)
+            self.tkobj.root.update()
 
     def text_display_timetable(self):
         """
@@ -114,16 +175,20 @@ class TimeTableVis(object):
                     for cls in self.timetable[campus][dayofweek][room]:
                         print("------", cls["Start Time"])
 
-    def generate_images(self, save_path):
+    def generate_images(self, save_path, image_path):
         """
         Actually does the generation of timetable images
         """
+        self.tkobj.prog_label.config(text="Generating timetables...")
+        self.tkobj.detail_label.config(text="Initialising...")
+        self.tkobj.progbar['value'] = 0
+        self.tkobj.root.update()
         for campus in self.timetable:
             if campus[0:3] == 'ONL':
                 # don't draw online timetable
                 continue
             for dayofweek in self.timetable[campus]:
-                print(f"Plotting campus {campus} for {dayofweek}")
+                self.tkobj.detail_label.config(text=f"Plotting campus {campus} for {dayofweek}")
                 fig, ax = plt.subplots(figsize=(12, 7))
                 rooms = []
                 for room in self.timetable[campus][dayofweek]:
@@ -142,7 +207,7 @@ class TimeTableVis(object):
                 ax.set_xlabel('Time')
 
                 # Adding logo - logo name must be logo.png in the same directory
-                logo = image.imread("logo.png")
+                logo = image.imread(image_path)
                 fig.figimage(logo, 10, 10)
 
                 # Plotting Classes
@@ -182,10 +247,12 @@ class TimeTableVis(object):
                     mkdir(f'{save_path}/output/{campus}')
                 except FileExistsError as e:
                     pass
-                plt.savefig(f'output/{campus}/{dayofweek}.png', dpi=200)
+                plt.savefig(f'{save_path}/output/{campus}/{dayofweek}.png', dpi=200)
                 fig.clf()
                 plt.close(fig)
+            self.tkobj.progbar['value'] += 100/(len(self.timetable.keys())-1)
+            self.tkobj.root.update()
 
 
 if __name__ == '__main__':
-    ttv = TimeTableVis()
+    ttv = Application()
