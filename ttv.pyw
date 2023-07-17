@@ -3,6 +3,7 @@ from calendar import day_name
 from os import mkdir
 from tkinter import ttk, messagebox, Toplevel
 from tkinter.filedialog import askopenfilename
+from textwrap import wrap
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -91,6 +92,7 @@ class TimeTableVis(object):
         messagebox.showinfo('Complete', 'Timetable generation has been completed.\nIt is located in the same directory'
                                         ' as the spreadsheet file, under the folder "output".')
         self.tkobj.root.destroy()
+        # todo make separate methods in the tk class rather than access through this class
 
     def comprehend_excel_file(self):
         try:
@@ -101,6 +103,7 @@ class TimeTableVis(object):
         self.tkobj.progbar['value'] = 0
         self.tkobj.prog_label.config(text="Comprehending excel sheet file...")
         required = ['Year', 'Study Period - Code', 'Start Date', 'Building Id', 'Room Id', 'Start Time', 'End Time']
+        # only for functionally required columns, not visually required columns.
         for item in required:
             if item not in list(file):
                 self.tkobj.error()
@@ -109,8 +112,8 @@ class TimeTableVis(object):
         for row in file.iloc():
             skip = False
             for item in required:
-                if row[item] != row[item]:  # check if nan
-                    self.tkobj.prog_label.confid(text="Skipping row with no value in functionally required columns")
+                if row[item] != row[item]:  # check if NaN (float representation of NotaNumber)
+                    self.tkobj.prog_label.config(text="Skipping row with no value in functionally required columns")
                     skip = True
             if skip:
                 continue
@@ -160,8 +163,10 @@ class TimeTableVis(object):
                 levels.add(str(room)[-3])
             if len(levels) > 1:
                 self.tkobj.detail_label.config(text=f"Multiple levels found on campus {campus}")
+                self.tkobj.root.update()
                 for level in levels:
                     self.tkobj.detail_label.config(text=f"Adding classes for {campus} Level {level}")
+                    self.tkobj.root.update()
                     self.timetable[f'{campus} Level {level}'] = {'Monday': {}, 'Tuesday': {}, 'Wednesday': {},
                                                                  'Thursday': {}, 'Friday': {}, 'Saturday': {},
                                                                  'Sunday': {}}
@@ -238,20 +243,17 @@ class TimeTableVis(object):
                         bar = plt.bar(x=start, height=0.8, width=end - start - 0.05, bottom=roomindex + 0.6,
                                       color='#d9d9d9', ec='black', zorder=3, align='edge')
                         # bar.set(bbox=dict(boxstyle='round', color='#d9d9d9'))
-                        starttime = str(cls["Start Time"])[0:-4] + ":" + str(cls["Start Time"])[-4:-2]
-                        endtime = str(cls["End Time"])[0:-4] + ":" + str(cls["End Time"])[-4:-2]
+                        starttime = str(int(cls["Start Time"]))[0:-4] + ":" + str(int(cls["Start Time"]))[-4:-2]
+                        endtime = str(int(cls["End Time"]))[0:-4] + ":" + str(int(cls["End Time"]))[-4:-2]
 
                         text = f"{cls['Curriculum Item']}  ({starttime} ~ {endtime})\n"
-                        text += f"{cls['Full Title']}\n"
-                        text += f"{cls['Activity Name']} - Class {cls['Class']}\n"
+                        text += "\n".join(wrap(cls['Full Title'], width=12*int(end-start))) + "\n"
+                        text += f"{cls['Activity Name']} - {cls['Class']}\n"
                         text += f"{cls['Staff Given Name']} {cls['Staff Family Name']}"
 
                         barheight = bar.patches[0].get_height()
                         barx, bary = bar.patches[0].xy
-                        t = plt.text(barx + 0.05, bary + barheight / 2, text, ha='left', va='center', fontsize=7,
-                                     wrap=True)
-                        wrapsize = (end - start) * 140
-                        t._get_wrap_line_width = lambda: wrapsize  # change this counter to adjust wrapping size
+                        t = plt.text(barx + 0.05, bary + barheight / 2, text, ha='left', va='center', fontsize=7)
 
                 # Name and save
                 plt.title(f"{campus} - {dayofweek}\n{self.timeframe}", y=1.07)
@@ -266,8 +268,8 @@ class TimeTableVis(object):
                 plt.savefig(f'{save_path}/output/{campus}/{dayofweek}.png', dpi=200)
                 fig.clf()
                 plt.close(fig)
-            self.tkobj.progbar['value'] += 100 / (len(self.timetable.keys()) - 1)
-            self.tkobj.root.update()
+                self.tkobj.progbar['value'] += 100 / (len(self.timetable.keys()) - 1) / 7
+                self.tkobj.root.update()
 
 
 if __name__ == '__main__':
