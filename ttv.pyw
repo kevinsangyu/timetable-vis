@@ -56,7 +56,10 @@ class Application(object):
         messagebox.showerror('Error', "Error: Failed Excel spreadsheet comprehension!\n"
                                       "Try removing any active filters in the file, and make sure the data starts at "
                                       "cell A1, so the first row is the column headings and the second row is the "
-                                      "first event/class/entry.")
+                                      "first event/class/entry. \n\n"
+                                      "Note that there may be hidden columns or rows at the start of excel files. "
+                                      "Make doubly sure that the first column heading is at cell A1.")
+        self.root.update()
         self.child.destroy()
 
     def prog_window(self):
@@ -97,8 +100,20 @@ class TimeTableVis(object):
             return
         self.tkobj.progbar['value'] = 0
         self.tkobj.prog_label.config(text="Comprehending excel sheet file...")
+        required = ['Year', 'Study Period - Code', 'Start Date', 'Building Id', 'Room Id', 'Start Time', 'End Time']
+        for item in required:
+            if item not in list(file):
+                self.tkobj.error()
+                return
         self.timeframe = f"{file['Year'][0]} - {file['Study Period - Code'][0]}"
         for row in file.iloc():
+            skip = False
+            for item in required:
+                if row[item] != row[item]:  # check if nan
+                    self.tkobj.prog_label.confid(text="Skipping row with no value in functionally required columns")
+                    skip = True
+            if skip:
+                continue
             date = row["Start Date"]
             dayoftheweek = day_name[date.weekday()]
             if row["Building Id"] not in self.timetable.keys():
