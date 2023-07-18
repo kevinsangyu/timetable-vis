@@ -156,8 +156,6 @@ class TimeTableVis(object):
                 for room in rooms:
                     if room not in self.timetable[campus][dayofweek].keys():
                         self.timetable[campus][dayofweek][room] = []
-            if campus[0:3] == 'ONL':  # don't bother splitting into levels if it's online
-                continue
             levels = set()
             for room in rooms:
                 levels.add(str(room)[-3])
@@ -205,9 +203,6 @@ class TimeTableVis(object):
         self.tkobj.progbar['value'] = 0
         self.tkobj.root.update()
         for campus in self.timetable:
-            if campus[0:3] == 'ONL':
-                # don't draw online timetable
-                continue
             for dayofweek in self.timetable[campus]:
                 self.tkobj.detail_label.config(text=f"Plotting campus {campus} for {dayofweek}")
                 fig, ax = plt.subplots(figsize=(12, 7))
@@ -268,7 +263,7 @@ class TimeTableVis(object):
                 plt.savefig(f'{save_path}/output/{campus}/{dayofweek}.png', dpi=200)
                 fig.clf()
                 plt.close(fig)
-                self.tkobj.progbar['value'] += 100 / (len(self.timetable.keys()) - 1) / 7
+                self.tkobj.progbar['value'] += 100 / len(self.timetable.keys()) / 7
                 self.tkobj.root.update()
 
 
