@@ -24,7 +24,8 @@ class Application(object):
         self.imagepath_label = ttk.Label(self.root, text="Open logo image", width=25, anchor='w')
         self.filepath_button = ttk.Button(self.root, text="Open file", command=self.open_spreadsheet, width=11)
         self.imagepath_button = ttk.Button(self.root, text="Open Image", command=self.open_image, width=11)
-        self.generate_button = ttk.Button(self.root, text="Generate!", command=self.generate, width=11)
+        self.generate_button = ttk.Button(self.root, text="Generate!", command=self.generate, width=11,
+                                          state='disabled')
         self.exit_button = ttk.Button(self.root, text="Exit", command=self.root.destroy)
 
         self.filepath_label.grid(row=0, column=0, sticky='W')
@@ -41,16 +42,21 @@ class Application(object):
         file_path = askopenfilename(filetypes=filetypes, initialdir=".\\", title="Locate timetable spreadsheet")
         if file_path:
             self.filepath_label.config(text=file_path)
+            if self.imagepath_label['text'] != '' and self.imagepath_label['text'] != 'Open logo image':
+                self.generate_button["state"] = 'enable'
 
     def open_image(self):
         filetypes = (('PNG Image', '*.png'), ('All files', '*.*'))
         image_path = askopenfilename(filetypes=filetypes, initialdir=".\\", title="Locate logo image")
         if image_path:
             self.imagepath_label.config(text=image_path)
+            if self.filepath_label['text'] != '' and self.filepath_label['text'] != 'Open Spreadsheet file':
+                self.generate_button["state"] = 'enable'
 
     def generate(self):
         excel_path = self.filepath_label.cget('text')
         image_path = self.imagepath_label.cget('text')
+        self.generate_button['state'] = 'disable'
         client = TimeTableVis(self, excel_path, image_path)
 
     def error(self):
@@ -62,6 +68,7 @@ class Application(object):
                                       "Make doubly sure that the first column heading is at cell A1.")
         self.root.update()
         self.child.destroy()
+        self.generate_button['state'] = 'enable'
 
     def prog_window(self):
         self.child = Toplevel(self.root)
