@@ -9,7 +9,7 @@
 3. openpyxl
 4. tkinter
 
-To ensure these modules are installed, run the _setup.pyw_ file.
+To ensure these modules are installed, run the _setup.py_ file.
 
 
 ### DESCRIPTION AND CONSTRAINTS
@@ -37,8 +37,8 @@ This python tool renders timetable images from a single .xlsx file. The followin
 The resulting images will be outputted into separated folders, under the output folder. The output folder will be created in the same directory as the selected spreadsheet.
 
 ### INSTRUCTIONS
-1. Download the files _setup.pyw_ and _ttv.pyw_. You only need these 2 files.
-2. Run the python file _setup.pyw_ to ensure all required modules are installed.
+1. Download the files _setup.py_ and _ttv.pyw_. You only need these 2 files.
+2. Run the python file _setup.py_ to ensure all required modules are installed.
 3. Run the python file _ttv.pyw_.
 4. Follow the prompts to generate your timetable.
 
