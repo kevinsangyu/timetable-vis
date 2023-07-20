@@ -4,7 +4,7 @@ from os import mkdir
 from tkinter import ttk, messagebox, Toplevel
 from tkinter.filedialog import askopenfilename
 from textwrap import wrap
-
+from subprocess import Popen
 import matplotlib.pyplot as plt
 import pandas as pd
 from matplotlib import image
@@ -58,6 +58,10 @@ class Application(object):
         image_path = self.imagepath_label.cget('text')
         self.generate_button['state'] = 'disable'
         client = TimeTableVis(self, excel_path, image_path)
+        save_path = excel_path.split("/")
+        save_path = "\\".join(save_path[0:-1]) + "\\output"
+        # todo make save_path a data member, as this code is repeated further down
+        Popen(f'explorer "{save_path}"')
 
     def error(self):
         messagebox.showerror('Error', "Error: Failed Excel spreadsheet comprehension!\n"
@@ -97,7 +101,8 @@ class TimeTableVis(object):
         self.comprehend_excel_file()
         self.generate_images(save_path, image_path)
         messagebox.showinfo('Complete', 'Timetable generation has been completed.\nIt is located in the same directory'
-                                        ' as the spreadsheet file, under the folder "output".')
+                                        ' as the spreadsheet file, under the folder "output". After this window is '
+                                        'closed file explorer will open it.')
         self.tkobj.root.destroy()
         # todo make separate methods in the tk class rather than access through this class
 
@@ -249,7 +254,7 @@ class TimeTableVis(object):
                         endtime = str(int(cls["End Time"]))[0:-4] + ":" + str(int(cls["End Time"]))[-4:-2]
 
                         text = f"{cls['Curriculum Item']}  ({starttime} ~ {endtime})\n"
-                        text += "\n".join(wrap(cls['Full Title'], width=12*int(end-start))) + "\n"
+                        text += "\n".join(wrap(cls['Full Title'], width=12 * int(end - start))) + "\n"
                         text += f"{cls['Activity Name']} - {cls['Class']}\n"
                         text += f"{cls['Staff Given Name']} {cls['Staff Family Name']}"
 
