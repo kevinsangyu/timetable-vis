@@ -57,19 +57,17 @@ class Application(object):
         excel_path = self.filepath_label.cget('text')
         image_path = self.imagepath_label.cget('text')
         self.generate_button['state'] = 'disable'
-        client = TimeTableVis(self, excel_path, image_path)
+        TimeTableVis(self, excel_path, image_path)
         save_path = excel_path.split("/")
         save_path = "\\".join(save_path[0:-1]) + "\\output"
         # todo make save_path a data member, as this code is repeated further down
         Popen(f'explorer "{save_path}"')
 
-    def error(self):
-        messagebox.showerror('Error', "Error: Failed Excel spreadsheet comprehension!\n"
-                                      "Try removing any active filters in the file, and make sure the data starts at "
-                                      "cell A1, so the first row is the column headings and the second row is the "
-                                      "first event/class/entry. \n\n"
-                                      "Note that there may be hidden columns or rows at the start of excel files. "
-                                      "Make doubly sure that the first column heading is at cell A1.")
+    def error(self, status):
+        messagebox.showerror('Error', "Failed Excel spreadsheet comprehension!\n"
+                                      "Try removing any active filters in the file, and make sure that the first "
+                                      "column heading is at cell A1. Note that there may be hidden columns or rows at "
+                                      f"the start of excel files. \n\nError: {status}")
         self.root.update()
         self.child.destroy()
         self.generate_button['state'] = 'enable'
@@ -81,7 +79,7 @@ class Application(object):
         self.child.title("TTV - Generating Images...")
         self.progbar = ttk.Progressbar(self.child, orient='horizontal', mode='determinate', length=200)
         self.prog_label = ttk.Label(self.child, text="Initialising...", width=45, anchor='w')
-        self.detail_label = ttk.Label(self.child, text="Initialising...", width=45, anchor='w')
+        self.detail_label = ttk.Label(self.child, text="", width=45, anchor='w')
         self.progbar.grid(row=0, column=0, columnspan=2, padx=10, pady=20)
         self.prog_label.grid(row=1, column=0, columnspan=2, padx=10)
         self.detail_label.grid(row=2, column=0, columnspan=2, padx=10)
@@ -109,8 +107,8 @@ class TimeTableVis(object):
     def comprehend_excel_file(self):
         try:
             file = pd.read_excel(self.excel_path)
-        except ValueError as e:
-            self.tkobj.error()
+        except ValueError:
+            self.tkobj.error("Failed at excel sheet comprehension (pandas). Check format of excel file.")
             return
         self.tkobj.progbar['value'] = 0
         self.tkobj.prog_label.config(text="Comprehending excel sheet file...")
@@ -118,7 +116,8 @@ class TimeTableVis(object):
         # only for functionally required columns, not visually required columns.
         for item in required:
             if item not in list(file):
-                self.tkobj.error()
+                self.tkobj.error(f"Failed at excel sheet comprehension, required column ({item}) not present. Check "
+                                 f"for spelling errors.")
                 return
         self.timeframe = f"{file['Year'][0]} - {file['Study Period - Code'][0]}"
         for row in file.iloc():
@@ -211,7 +210,7 @@ class TimeTableVis(object):
         Actually does the generation of timetable images
         """
         self.tkobj.prog_label.config(text="Generating timetables...")
-        self.tkobj.detail_label.config(text="Initialising...")
+        self.tkobj.detail_label.config(text="")
         self.tkobj.progbar['value'] = 0
         self.tkobj.root.update()
         for campus in self.timetable:
@@ -260,17 +259,17 @@ class TimeTableVis(object):
 
                         barheight = bar.patches[0].get_height()
                         barx, bary = bar.patches[0].xy
-                        t = plt.text(barx + 0.05, bary + barheight / 2, text, ha='left', va='center', fontsize=7)
+                        plt.text(barx + 0.05, bary + barheight / 2, text, ha='left', va='center', fontsize=7)
 
                 # Name and save
                 plt.title(f"{campus} - {dayofweek}\n{self.timeframe}", y=1.07)
                 try:
                     mkdir(f"{save_path}/output")
-                except FileExistsError as e:
+                except FileExistsError:
                     pass
                 try:
                     mkdir(f'{save_path}/output/{campus}')
-                except FileExistsError as e:
+                except FileExistsError:
                     pass
                 plt.savefig(f'{save_path}/output/{campus}/{dayofweek}.png', dpi=200)
                 fig.clf()
