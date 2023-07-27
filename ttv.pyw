@@ -27,6 +27,10 @@ class Application(object):
         self.generate_button = ttk.Button(self.root, text="Generate!", command=self.generate, width=11,
                                           state='disabled')
         self.exit_button = ttk.Button(self.root, text="Exit", command=self.root.destroy)
+        self.child = None  # to silence IDE warnings
+        self.progbar = None
+        self.prog_label = None
+        self.detail_label = None
 
         self.filepath_label.grid(row=0, column=0, sticky='W')
         self.filepath_button.grid(row=0, column=1, sticky='W')
@@ -57,10 +61,9 @@ class Application(object):
         excel_path = self.filepath_label.cget('text')
         image_path = self.imagepath_label.cget('text')
         self.generate_button['state'] = 'disable'
-        TimeTableVis(self, excel_path, image_path)
-        save_path = excel_path.split("/")
-        save_path = "\\".join(save_path[0:-1]) + "\\output"
-        # todo make save_path a data member, as this code is repeated further down
+        ttv_client = TimeTableVis(self, excel_path, image_path)
+        save_path = ttv_client.save_path + "/output"
+        save_path = save_path.replace("/", "\\")
         Popen(f'explorer "{save_path}"')
 
     def error(self, status):
@@ -85,6 +88,11 @@ class Application(object):
         self.detail_label.grid(row=2, column=0, columnspan=2, padx=10)
         self.root.update()
 
+    def close(self):
+        self.root.destroy()
+    # todo make separate methods to update the progress bar instead of accessing this classes' members
+    # that would make it more OOP but it is a pain
+
 
 class TimeTableVis(object):
     def __init__(self, tkobj, excel_path, image_path):
@@ -92,17 +100,15 @@ class TimeTableVis(object):
         self.timetable = {}
         self.timeframe = ""  # year and term number
         self.tkobj = tkobj
-        save_path = excel_path.split("/")
-        save_path = "/".join(save_path[0:-1])
+        self.save_path = "/".join(excel_path.split("/")[0:-1])
 
         tkobj.prog_window()
         self.comprehend_excel_file()
-        self.generate_images(save_path, image_path)
+        self.generate_images(self.save_path, image_path)
         messagebox.showinfo('Complete', 'Timetable generation has been completed.\nIt is located in the same directory'
                                         ' as the spreadsheet file, under the folder "output". After this window is '
                                         'closed file explorer will open it.')
-        self.tkobj.root.destroy()
-        # todo make separate methods in the tk class rather than access through this class
+        self.tkobj.close()
 
     def comprehend_excel_file(self):
         try:
