@@ -21,7 +21,8 @@ class Application(object):
         self.root.resizable(False, False)
 
         self.filepath_label = ttk.Label(self.root, text="Open Spreadsheet file", width=25, anchor='w')
-        self.imagepath_label = ttk.Label(self.root, text="Open logo image", width=25, anchor='w')
+        self.imagepath_label = ttk.Label(self.root, text="Open logo image\n(Recommended size 239x92)", width=25,
+                                         anchor='w')
         self.filepath_button = ttk.Button(self.root, text="Open file", command=self.open_spreadsheet, width=11)
         self.imagepath_button = ttk.Button(self.root, text="Open Image", command=self.open_image, width=11)
         self.generate_button = ttk.Button(self.root, text="Generate!", command=self.generate, width=11,
@@ -192,11 +193,9 @@ class TimeTableVis(object):
                     for room in rooms:
                         if str(room)[-3] == level:
                             for dayofweek in self.timetable[f'{campus} Level {level}']:
-                                self.timetable[f'{campus} Level {level}'][dayofweek][room] = [cls for cls in
-                                                                                              self.timetable[campus][
-                                                                                                  dayofweek][room] if
-                                                                                              cls['Room Id'][
-                                                                                                  -3] == level]
+                                self.timetable[f'{campus} Level {level}'][dayofweek][room] = \
+                                    [cls for cls in self.timetable[campus][dayofweek][room] if
+                                     cls['Room Id'][-3] == level]
 
                 del self.timetable[campus]
             self.tkobj.progbar['value'] += 100 / (len(copytable.keys()) - 1)
@@ -204,7 +203,12 @@ class TimeTableVis(object):
 
     def generate_images(self, save_path, image_path):
         """
-        Actually does the generation of timetable images
+        Generates the timetable images.
+        The times are hard coded between 9:00 and 21:00. The room numbers are added automatically depending on the rooms
+        in each campus.
+        The label will display the subject code, subject name, activity name and number, staff family and given name.
+        The logo is inserted on the bottom left of the image.
+        The title is CAMPUS Level - Day of week, Year Term number.
         """
         self.tkobj.prog_label.config(text="Generating timetables...")
         self.tkobj.detail_label.config(text="")
@@ -220,7 +224,7 @@ class TimeTableVis(object):
                 rooms.sort(reverse=True)
 
                 # Axis formatting
-                ax.xaxis.grid(zorder=0)  # zorder is to hide it behind bars/classes
+                ax.xaxis.grid(zorder=0)  # z order is to hide it behind bars/classes
                 ax.set_ylim(0.3, len(rooms) + 0.7)
                 ax.set_xlim(8.9, 21.9)
                 ax.set_yticks(range(1, len(rooms) + 1))
@@ -231,13 +235,15 @@ class TimeTableVis(object):
                 ax.set_xlabel('Time')
 
                 # Adding logo
+                # The size of the image is designed to be around (239x92), anything bigger or smaller will display
+                # as bigger or smaller in the output, which could either be unreadable or hide parts of the timetable.
                 logo = image.imread(image_path)
                 fig.figimage(logo, 10, 10)
 
                 # Plotting and labelling classes/events
                 for roomindex in range(len(rooms)):
                     if roomindex != 0:
-                        # line in between boxes, aka ygrid
+                        # line in between boxes, aka y grid
                         ax.axline((1, roomindex + 0.5), (2, roomindex + 0.5), color='grey', linewidth=0.5)
                     for cls in self.timetable[campus][dayofweek][rooms[roomindex]]:
                         start = float(cls["Start Time"]) / 10000
@@ -271,6 +277,8 @@ class TimeTableVis(object):
                 except FileExistsError:
                     pass
                 plt.savefig(f'{save_path}/output/{campus}/{dayofweek}.png', dpi=200)
+                # dpi relates to the size of the image, which normally wouldn't matter, but since an image of variable
+                # size is being inserted, with the sample image it's designed for (239x92 pixels), 200 is a good size.
                 fig.clf()
                 plt.close(fig)
                 self.tkobj.progbar['value'] += 100 / len(self.timetable.keys()) / 7
