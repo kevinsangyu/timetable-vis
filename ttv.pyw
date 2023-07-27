@@ -160,8 +160,6 @@ class TimeTableVis(object):
         OC206 --> O'Connell Street level 2, room 6
         M104 --> Market Street level 1, room 4
         NCG02 --> New Castle level G (ground), room 2
-        Additionally, if the class is online, keep the first 3 letters of the campus as ONL, otherwise it will split
-        the online timetable into different folders.
         """
         copytable = self.timetable.copy()
         self.tkobj.prog_label.config(text="Standardizing rooms and levels...")
