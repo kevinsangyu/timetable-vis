@@ -119,17 +119,17 @@ class TimeTableVis(object):
         self.tkobj.progbar['value'] = 0
         self.tkobj.prog_label.config(text="Comprehending excel sheet file...")
         required = ['Year', 'Study Period - Code', 'Start Date', 'Building Id', 'Room Id', 'Start Time', 'End Time']
-        # only for functionally required columns, not visually required columns.
+        # only for functionally required columns, not visually required columns. i.e. info to draw, not label
         for item in required:
             if item not in list(file):
-                self.tkobj.error(f"Failed at excel sheet comprehension, required column ({item}) not present. Check "
+                self.tkobj.error(f"Failed at excel sheet comprehension, required column '{item}' not present. Check "
                                  f"for spelling errors.")
                 return
         self.timeframe = f"{file['Year'][0]} - {file['Study Period - Code'][0]}"
         for row in file.iloc():
             skip = False
             for item in required:
-                if row[item] != row[item]:  # check if NaN (float representation of NotaNumber)
+                if row[item] != row[item]:  # check if NaN (float representation of Not-a-Number)
                     self.tkobj.prog_label.config(text="Skipping row with no value in functionally required columns")
                     skip = True
             if skip:
@@ -152,7 +152,8 @@ class TimeTableVis(object):
     def standardize_rooms_and_levels(self):
         """
         This function will make sure that all campuses are also split apart by their levels, and
-        make sure every classroom in the campus is present in the timetable.
+        make sure every classroom in the campus is present in the timetable. Otherwise, the timetable would only display
+        classrooms which have classes/events on that day.
 
         Make sure that the third last character (number or letter) denotes the level of the classrooms, such as:
         OC206 --> O'Connell Street level 2, room 6
@@ -165,6 +166,7 @@ class TimeTableVis(object):
         self.tkobj.prog_label.config(text="Standardizing rooms and levels...")
         self.tkobj.progbar['value'] = 0
         for campus in copytable:
+            # standardize rooms
             rooms = []
             for dayofweek in self.timetable[campus]:
                 for room in self.timetable[campus][dayofweek]:
@@ -173,9 +175,11 @@ class TimeTableVis(object):
                 for room in rooms:
                     if room not in self.timetable[campus][dayofweek].keys():
                         self.timetable[campus][dayofweek][room] = []
+            # standardize levels
             levels = set()
             for room in rooms:
                 levels.add(str(room)[-3])
+                # third last character of the room id denotes the level of the room. (See method description)
             if len(levels) > 1:
                 self.tkobj.detail_label.config(text=f"Multiple levels found on campus {campus}")
                 self.tkobj.root.update()
@@ -198,19 +202,6 @@ class TimeTableVis(object):
             self.tkobj.progbar['value'] += 100 / (len(copytable.keys()) - 1)
             self.tkobj.root.update()
 
-    def text_display_timetable(self):
-        """
-        Displays the timetable in text format just for testing
-        """
-        for campus in self.timetable:
-            print(campus)
-            for dayofweek in self.timetable[campus]:
-                print("--" + dayofweek)
-                for room in self.timetable[campus][dayofweek]:
-                    print("----" + room)
-                    for cls in self.timetable[campus][dayofweek][room]:
-                        print("------", cls["Start Time"])
-
     def generate_images(self, save_path, image_path):
         """
         Actually does the generation of timetable images
@@ -229,7 +220,7 @@ class TimeTableVis(object):
                 rooms.sort(reverse=True)
 
                 # Axis formatting
-                ax.xaxis.grid(zorder=0)  # zorder is to hide it behind bars
+                ax.xaxis.grid(zorder=0)  # zorder is to hide it behind bars/classes
                 ax.set_ylim(0.3, len(rooms) + 0.7)
                 ax.set_xlim(8.9, 21.9)
                 ax.set_yticks(range(1, len(rooms) + 1))
@@ -239,25 +230,27 @@ class TimeTableVis(object):
                                     "18:00", "19:00", "20:00", "21:00", "22:00"])
                 ax.set_xlabel('Time')
 
-                # Adding logo - logo name must be logo.png in the same directory
+                # Adding logo
                 logo = image.imread(image_path)
                 fig.figimage(logo, 10, 10)
 
-                # Plotting Classes
+                # Plotting and labelling classes/events
                 for roomindex in range(len(rooms)):
                     if roomindex != 0:
-                        # line in between boxes/ygrid
+                        # line in between boxes, aka ygrid
                         ax.axline((1, roomindex + 0.5), (2, roomindex + 0.5), color='grey', linewidth=0.5)
                     for cls in self.timetable[campus][dayofweek][rooms[roomindex]]:
                         start = float(cls["Start Time"]) / 10000
                         end = float(cls["End Time"]) / 10000
 
+                        # Plot the class/event
                         bar = plt.bar(x=start, height=0.8, width=end - start - 0.05, bottom=roomindex + 0.6,
                                       color='#d9d9d9', ec='black', zorder=3, align='edge')
                         # bar.set(bbox=dict(boxstyle='round', color='#d9d9d9'))
+
+                        # Label the class/event
                         starttime = str(int(cls["Start Time"]))[0:-4] + ":" + str(int(cls["Start Time"]))[-4:-2]
                         endtime = str(int(cls["End Time"]))[0:-4] + ":" + str(int(cls["End Time"]))[-4:-2]
-
                         text = f"{cls['Curriculum Item']}  ({starttime} ~ {endtime})\n"
                         text += "\n".join(wrap(cls['Full Title'], width=12 * int(end - start))) + "\n"
                         text += f"{cls['Activity Name']} - {cls['Class']}\n"
