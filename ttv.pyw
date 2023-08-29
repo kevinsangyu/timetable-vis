@@ -25,6 +25,9 @@ class Application(object):
                                          anchor='w')
         self.filepath_button = ttk.Button(self.root, text="Open file", command=self.open_spreadsheet, width=11)
         self.imagepath_button = ttk.Button(self.root, text="Open Image", command=self.open_image, width=11)
+        self.cboxvar = tk.StringVar(value="1")
+        self.koilabel = ""
+        self.koicbox = ttk.Checkbutton(self.root, text="KOI Title label", variable=self.cboxvar)
         self.generate_button = ttk.Button(self.root, text="Generate!", command=self.generate, width=11,
                                           state='disabled')
         self.exit_button = ttk.Button(self.root, text="Exit", command=self.root.destroy)
@@ -37,8 +40,9 @@ class Application(object):
         self.filepath_button.grid(row=0, column=1, sticky='W')
         self.imagepath_label.grid(row=1, column=0, sticky='W')
         self.imagepath_button.grid(row=1, column=1, sticky='W')
-        self.generate_button.grid(row=2, column=1)
-        self.exit_button.grid(row=2, column=0, sticky='W')
+        self.koicbox.grid(row=2, column=0, sticky="W")
+        self.generate_button.grid(row=3, column=1)
+        self.exit_button.grid(row=3, column=0, sticky='W')
 
         self.root.mainloop()
 
@@ -62,9 +66,11 @@ class Application(object):
         excel_path = self.filepath_label.cget('text')
         image_path = self.imagepath_label.cget('text')
         self.generate_button['state'] = 'disable'
-        ttv_client = TimeTableVis(self, excel_path, image_path)
-        save_path = ttv_client.save_path + "/output"
-        save_path = save_path.replace("/", "\\")
+        self.koilabel = self.cboxvar.get()
+        client = TimeTableVis(self, excel_path, image_path)
+        save_path = excel_path.split("/")
+        save_path = "\\".join(save_path[0:-1]) + "\\output"
+        # todo make save_path a data member, as this code is repeated further down
         Popen(f'explorer "{save_path}"')
 
     def error(self, status):
@@ -119,14 +125,15 @@ class TimeTableVis(object):
             return
         self.tkobj.progbar['value'] = 0
         self.tkobj.prog_label.config(text="Comprehending excel sheet file...")
-        required = ['Year', 'Study Period - Code', 'Start Date', 'Building Id', 'Room Id', 'Start Time', 'End Time']
-        # only for functionally required columns, not visually required columns. i.e. info to draw, not label
+        required = ['Year', 'Study Period - Code', 'Study Period - Date', 'Start Date', 'Building Id', 'Room Id',
+                    'Start Time', 'End Time']
+        # only for functionally required columns, not visually required columns.
         for item in required:
             if item not in list(file):
                 self.tkobj.error(f"Failed at excel sheet comprehension, required column '{item}' not present. Check "
                                  f"for spelling errors.")
                 return
-        self.timeframe = f"{file['Year'][0]} - {file['Study Period - Code'][0]}"
+        self.timeframe = f"{int(file['Year'][0])} {file['Study Period - Code'][0]} - {file['Study Period - Date'][0]}"
         for row in file.iloc():
             skip = False
             for item in required:
@@ -232,9 +239,6 @@ class TimeTableVis(object):
                                     "18:00", "19:00", "20:00", "21:00", "22:00"])
                 ax.set_xlabel('Time')
 
-                # Adding logo
-                # The size of the image is designed to be around (239x92), anything bigger or smaller will display
-                # as bigger or smaller in the output, which could either be unreadable or hide parts of the timetable.
                 logo = image.imread(image_path)
                 fig.figimage(logo, 10, 10)
 
@@ -257,7 +261,7 @@ class TimeTableVis(object):
                         endtime = str(int(cls["End Time"]))[0:-4] + ":" + str(int(cls["End Time"]))[-4:-2]
                         text = f"{cls['Curriculum Item']}  ({starttime} ~ {endtime})\n"
                         text += "\n".join(wrap(cls['Full Title'], width=12 * int(end - start))) + "\n"
-                        text += f"{cls['Activity Name']} - {cls['Class']}\n"
+                        text += f"{cls['Activity Name']} {cls['Comment']}\n"
                         text += f"{cls['Staff Given Name']} {cls['Staff Family Name']}"
 
                         barheight = bar.patches[0].get_height()
@@ -265,7 +269,11 @@ class TimeTableVis(object):
                         plt.text(barx + 0.05, bary + barheight / 2, text, ha='left', va='center', fontsize=7)
 
                 # Name and save
-                plt.title(f"{campus} - {dayofweek}\n{self.timeframe}", y=1.07)
+                if self.tkobj.koilabel == "1":
+                    plt.title(f"KOI Academic Timetable - {campus}\n{self.timeframe}")
+                else:
+                    plt.title(f"{campus}\n{self.timeframe}", y=1.07)
+                plt.title(dayofweek, loc="left")
                 try:
                     mkdir(f"{save_path}/output")
                 except FileExistsError:
@@ -274,9 +282,8 @@ class TimeTableVis(object):
                     mkdir(f'{save_path}/output/{campus}')
                 except FileExistsError:
                     pass
-                plt.savefig(f'{save_path}/output/{campus}/{dayofweek}.png', dpi=200)
-                # dpi relates to the size of the image, which normally wouldn't matter, but since an image of variable
-                # size is being inserted, with the sample image it's designed for (239x92 pixels), 200 is a good size.
+
+                plt.savefig(f'{save_path}/output/{campus}/{dayofweek}.png', dpi=200, bbox_inches='tight', pad_inches=0.3)
                 fig.clf()
                 plt.close(fig)
                 self.tkobj.progbar['value'] += 100 / len(self.timetable.keys()) / 7
