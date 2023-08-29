@@ -32,6 +32,7 @@ This python tool renders timetable images from a single .xlsx file. The followin
    10. Staff Given Name
    11. Year
    12. Study Period - Code
+   13. Study Period - Date
 5. The third last character of the Room Id **must** denote the level of the room, e.g. OC203 --> Level 2
 
 The resulting images will be outputted into separated folders, under the output folder. The output folder will be created in the same directory as the selected spreadsheet.
