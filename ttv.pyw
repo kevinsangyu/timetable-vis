@@ -21,7 +21,8 @@ class Application(object):
         self.root.resizable(False, False)
 
         self.filepath_label = ttk.Label(self.root, text="Open Spreadsheet file", width=25, anchor='w')
-        self.imagepath_label = ttk.Label(self.root, text="Open logo image", width=25, anchor='w')
+        self.imagepath_label = ttk.Label(self.root, text="Open logo image\n(Recommended size 239x92)", width=25,
+                                         anchor='w')
         self.filepath_button = ttk.Button(self.root, text="Open file", command=self.open_spreadsheet, width=11)
         self.imagepath_button = ttk.Button(self.root, text="Open Image", command=self.open_image, width=11)
         self.cboxvar = tk.StringVar(value="1")
@@ -30,6 +31,10 @@ class Application(object):
         self.generate_button = ttk.Button(self.root, text="Generate!", command=self.generate, width=11,
                                           state='disabled')
         self.exit_button = ttk.Button(self.root, text="Exit", command=self.root.destroy)
+        self.child = None  # to silence IDE warnings
+        self.progbar = None
+        self.prog_label = None
+        self.detail_label = None
 
         self.filepath_label.grid(row=0, column=0, sticky='W')
         self.filepath_button.grid(row=0, column=1, sticky='W')
@@ -68,13 +73,11 @@ class Application(object):
         # todo make save_path a data member, as this code is repeated further down
         Popen(f'explorer "{save_path}"')
 
-    def error(self):
-        messagebox.showerror('Error', "Error: Failed Excel spreadsheet comprehension!\n"
-                                      "Try removing any active filters in the file, and make sure the data starts at "
-                                      "cell A1, so the first row is the column headings and the second row is the "
-                                      "first event/class/entry. \n\n"
-                                      "Note that there may be hidden columns or rows at the start of excel files. "
-                                      "Make doubly sure that the first column heading is at cell A1.")
+    def error(self, status):
+        messagebox.showerror('Error', "Failed Excel spreadsheet comprehension!\n"
+                                      "Try removing any active filters in the file, and make sure that the first "
+                                      "column heading is at cell A1. Note that there may be hidden columns or rows at "
+                                      f"the start of excel files. \n\nError: {status}")
         self.root.update()
         self.child.destroy()
         self.generate_button['state'] = 'enable'
@@ -86,11 +89,16 @@ class Application(object):
         self.child.title("TTV - Generating Images...")
         self.progbar = ttk.Progressbar(self.child, orient='horizontal', mode='determinate', length=200)
         self.prog_label = ttk.Label(self.child, text="Initialising...", width=45, anchor='w')
-        self.detail_label = ttk.Label(self.child, text="Initialising...", width=45, anchor='w')
+        self.detail_label = ttk.Label(self.child, text="", width=45, anchor='w')
         self.progbar.grid(row=0, column=0, columnspan=2, padx=10, pady=20)
         self.prog_label.grid(row=1, column=0, columnspan=2, padx=10)
         self.detail_label.grid(row=2, column=0, columnspan=2, padx=10)
         self.root.update()
+
+    def close(self):
+        self.root.destroy()
+    # todo make separate methods to update the progress bar instead of accessing this classes' members
+    # that would make it more OOP but it is a pain
 
 
 class TimeTableVis(object):
@@ -99,23 +107,21 @@ class TimeTableVis(object):
         self.timetable = {}
         self.timeframe = ""  # year and term number
         self.tkobj = tkobj
-        save_path = excel_path.split("/")
-        save_path = "/".join(save_path[0:-1])
+        self.save_path = "/".join(excel_path.split("/")[0:-1])
 
         tkobj.prog_window()
         self.comprehend_excel_file()
-        self.generate_images(save_path, image_path)
+        self.generate_images(self.save_path, image_path)
         messagebox.showinfo('Complete', 'Timetable generation has been completed.\nIt is located in the same directory'
                                         ' as the spreadsheet file, under the folder "output". After this window is '
                                         'closed file explorer will open it.')
-        self.tkobj.root.destroy()
-        # todo make separate methods in the tk class rather than access through this class
+        self.tkobj.close()
 
     def comprehend_excel_file(self):
         try:
             file = pd.read_excel(self.excel_path)
-        except ValueError as e:
-            self.tkobj.error()
+        except ValueError:
+            self.tkobj.error("Failed at excel sheet comprehension (pandas). Check format of excel file.")
             return
         self.tkobj.progbar['value'] = 0
         self.tkobj.prog_label.config(text="Comprehending excel sheet file...")
@@ -124,13 +130,14 @@ class TimeTableVis(object):
         # only for functionally required columns, not visually required columns.
         for item in required:
             if item not in list(file):
-                self.tkobj.error()
+                self.tkobj.error(f"Failed at excel sheet comprehension, required column '{item}' not present. Check "
+                                 f"for spelling errors.")
                 return
         self.timeframe = f"{int(file['Year'][0])} {file['Study Period - Code'][0]} - {file['Study Period - Date'][0]}"
         for row in file.iloc():
             skip = False
             for item in required:
-                if row[item] != row[item]:  # check if NaN (float representation of NotaNumber)
+                if row[item] != row[item]:  # check if NaN (float representation of Not-a-Number)
                     self.tkobj.prog_label.config(text="Skipping row with no value in functionally required columns")
                     skip = True
             if skip:
@@ -153,19 +160,19 @@ class TimeTableVis(object):
     def standardize_rooms_and_levels(self):
         """
         This function will make sure that all campuses are also split apart by their levels, and
-        make sure every classroom in the campus is present in the timetable.
+        make sure every classroom in the campus is present in the timetable. Otherwise, the timetable would only display
+        classrooms which have classes/events on that day.
 
         Make sure that the third last character (number or letter) denotes the level of the classrooms, such as:
         OC206 --> O'Connell Street level 2, room 6
         M104 --> Market Street level 1, room 4
         NCG02 --> New Castle level G (ground), room 2
-        Additionally, if the class is online, keep the first 3 letters of the campus as ONL, otherwise it will split
-        the online timetable into different folders.
         """
         copytable = self.timetable.copy()
         self.tkobj.prog_label.config(text="Standardizing rooms and levels...")
         self.tkobj.progbar['value'] = 0
         for campus in copytable:
+            # standardize rooms
             rooms = []
             for dayofweek in self.timetable[campus]:
                 for room in self.timetable[campus][dayofweek]:
@@ -174,9 +181,11 @@ class TimeTableVis(object):
                 for room in rooms:
                     if room not in self.timetable[campus][dayofweek].keys():
                         self.timetable[campus][dayofweek][room] = []
+            # standardize levels
             levels = set()
             for room in rooms:
                 levels.add(str(room)[-3])
+                # third last character of the room id denotes the level of the room. (See method description)
             if len(levels) > 1:
                 self.tkobj.detail_label.config(text=f"Multiple levels found on campus {campus}")
                 self.tkobj.root.update()
@@ -189,11 +198,9 @@ class TimeTableVis(object):
                     for room in rooms:
                         if str(room)[-3] == level:
                             for dayofweek in self.timetable[f'{campus} Level {level}']:
-                                self.timetable[f'{campus} Level {level}'][dayofweek][room] = [cls for cls in
-                                                                                              self.timetable[campus][
-                                                                                                  dayofweek][room] if
-                                                                                              cls['Room Id'][
-                                                                                                  -3] == level]
+                                self.timetable[f'{campus} Level {level}'][dayofweek][room] = \
+                                    [cls for cls in self.timetable[campus][dayofweek][room] if
+                                     cls['Room Id'][-3] == level]
 
                 del self.timetable[campus]
             self.tkobj.progbar['value'] += 100 / (len(copytable.keys()) - 1)
@@ -201,10 +208,15 @@ class TimeTableVis(object):
 
     def generate_images(self, save_path, image_path):
         """
-        Actually does the generation of timetable images
+        Generates the timetable images.
+        The times are hard coded between 9:00 and 21:00. The room numbers are added automatically depending on the rooms
+        in each campus.
+        The label will display the subject code, subject name, activity name and number, staff family and given name.
+        The logo is inserted on the bottom left of the image.
+        The title is CAMPUS Level - Day of week, Year Term number.
         """
         self.tkobj.prog_label.config(text="Generating timetables...")
-        self.tkobj.detail_label.config(text="Initialising...")
+        self.tkobj.detail_label.config(text="")
         self.tkobj.progbar['value'] = 0
         self.tkobj.root.update()
         for campus in self.timetable:
@@ -217,7 +229,7 @@ class TimeTableVis(object):
                 rooms.sort(reverse=True)
 
                 # Axis formatting
-                ax.xaxis.grid(zorder=0)  # zorder is to hide it behind bars
+                ax.xaxis.grid(zorder=0)  # z order is to hide it behind bars/classes
                 ax.set_ylim(0.3, len(rooms) + 0.7)
                 ax.set_xlim(8.9, 21.9)
                 ax.set_yticks(range(1, len(rooms) + 1))
@@ -230,21 +242,23 @@ class TimeTableVis(object):
                 logo = image.imread(image_path)
                 fig.figimage(logo, 10, 10)
 
-                # Plotting Classes
+                # Plotting and labelling classes/events
                 for roomindex in range(len(rooms)):
                     if roomindex != 0:
-                        # line in between boxes/ygrid
+                        # line in between boxes, aka y grid
                         ax.axline((1, roomindex + 0.5), (2, roomindex + 0.5), color='grey', linewidth=0.5)
                     for cls in self.timetable[campus][dayofweek][rooms[roomindex]]:
                         start = float(cls["Start Time"]) / 10000
                         end = float(cls["End Time"]) / 10000
 
+                        # Plot the class/event
                         bar = plt.bar(x=start, height=0.8, width=end - start - 0.05, bottom=roomindex + 0.6,
                                       color='#d9d9d9', ec='black', zorder=3, align='edge')
                         # bar.set(bbox=dict(boxstyle='round', color='#d9d9d9'))
+
+                        # Label the class/event
                         starttime = str(int(cls["Start Time"]))[0:-4] + ":" + str(int(cls["Start Time"]))[-4:-2]
                         endtime = str(int(cls["End Time"]))[0:-4] + ":" + str(int(cls["End Time"]))[-4:-2]
-
                         text = f"{cls['Curriculum Item']}  ({starttime} ~ {endtime})\n"
                         text += "\n".join(wrap(cls['Full Title'], width=12 * int(end - start))) + "\n"
                         text += f"{cls['Activity Name']} {cls['Comment']}\n"
@@ -252,7 +266,7 @@ class TimeTableVis(object):
 
                         barheight = bar.patches[0].get_height()
                         barx, bary = bar.patches[0].xy
-                        t = plt.text(barx + 0.05, bary + barheight / 2, text, ha='left', va='center', fontsize=7)
+                        plt.text(barx + 0.05, bary + barheight / 2, text, ha='left', va='center', fontsize=7)
 
                 # Name and save
                 if self.tkobj.koilabel == "1":
@@ -262,12 +276,13 @@ class TimeTableVis(object):
                 plt.title(dayofweek, loc="left")
                 try:
                     mkdir(f"{save_path}/output")
-                except FileExistsError as e:
+                except FileExistsError:
                     pass
                 try:
                     mkdir(f'{save_path}/output/{campus}')
-                except FileExistsError as e:
+                except FileExistsError:
                     pass
+
                 plt.savefig(f'{save_path}/output/{campus}/{dayofweek}.png', dpi=200, bbox_inches='tight', pad_inches=0.3)
                 fig.clf()
                 plt.close(fig)

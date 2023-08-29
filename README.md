@@ -22,7 +22,7 @@ This python tool renders timetable images from a single .xlsx file. The followin
 4. The Following headings must be present in the spreadsheet (Caps Sensitive!):
    1. Curriculum Item (aka Subject Code)
    2. Full Title (aka Subject Name)
-   3. Activity Name (aka class type, eg Lecture)
+   3. Activity Name (aka class type, e.g. Lecture)
    4. Start Date
    5. Start Time
    6. End Time
@@ -32,8 +32,7 @@ This python tool renders timetable images from a single .xlsx file. The followin
    10. Staff Given Name
    11. Year
    12. Study Period - Code
-   13. Study Period - Date
-5. The third last character of the Room Id **must** denote the level of the room, eg OC203 --> Level 2
+5. The third last character of the Room Id **must** denote the level of the room, e.g. OC203 --> Level 2
 
 The resulting images will be outputted into separated folders, under the output folder. The output folder will be created in the same directory as the selected spreadsheet.
 
@@ -43,4 +42,4 @@ The resulting images will be outputted into separated folders, under the output 
 3. Run the python file _ttv.pyw_.
 4. Follow the prompts to generate your timetable.
 
-Note that if you want to run this code on Linux or MacOS, it should be functional if you change the file extension from .pyw to .py.
+Note that if you want to run this code on Linux or macOS, it should be functional if you change the file extension from .pyw to .py.

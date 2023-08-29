@@ -7,6 +7,7 @@ def install(package):
 
 
 if __name__ == '__main__':
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "--upgrade", "pip"])
     install("tk")
     install("pandas")
     install("openpyxl")
