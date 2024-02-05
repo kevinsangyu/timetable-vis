@@ -23,16 +23,16 @@ This python tool renders timetable images from a single .xlsx file. The followin
    1. Curriculum Item (aka Subject Code)
    2. Full Title (aka Subject Name)
    3. Activity Name (aka class type, e.g. Lecture)
-   4. Start Date
-   5. Start Time
-   6. End Time
+   4. Start Date (Used to calculate the day of week of class)
+   5. Start Time (Class start time)
+   6. End Time (Class end time)
    7. Building Id
    8. Room Id
    9. Staff Family Name
    10. Staff Given Name
    11. Year
-   12. Study Period - Code
-   13. Study Period - Date
+   12. Study Period - Code (Term/Semester number, Used for timetable title)
+   13. Study Period - Date (Date period of Term/Semester, Used for timetable title)
 5. The third last character of the Room Id **must** denote the level of the room, e.g. OC203 --> Level 2
 
 The resulting images will be outputted into separated folders, under the output folder. The output folder will be created in the same directory as the selected spreadsheet.
